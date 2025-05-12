@@ -11,8 +11,8 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 
+@Getter
 public class Lang {
-    @Getter
     private final Map<NamespacedKey, String> langCache = new HashMap<>();
 
     public String getTranslated(NamespacedKey key) {

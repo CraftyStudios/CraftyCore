@@ -54,6 +54,14 @@ public class ConfigHandler {
                 .orElseThrow(() -> new IllegalArgumentException("No serializer found for type: " + target.getType().getTypeName()));
     }
 
+    @SuppressWarnings("unchecked")
+    public <T> ConfigSerializer<T> getSerializer(Class<T> target) {
+        return (ConfigSerializer<T>) serializers.stream()
+                .filter((s) -> s.getType().getType().equals(target))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("No serializer found for type: " + target.getName()));
+    }
+
     public void registerPlayerSupplier(Field field, Supplier<OfflinePlayer> supplier) {
         playerSuppliers.put(field, supplier);
     }
