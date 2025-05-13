@@ -1,8 +1,14 @@
 package dev.crafty.core.gui;
 
+import dev.crafty.core.api.CraftyPlugin;
 import dev.crafty.core.config.annotation.ConfigValue;
+import dev.crafty.core.log.Logger;
+import jakarta.inject.Inject;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
@@ -12,11 +18,18 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
-public abstract class Gui implements InventoryHolder {
+public abstract class Gui implements InventoryHolder, Listener {
+    @Inject
+    private Logger logger;
+
     protected final Player player;
     private final String configName;
     private Inventory inventory;
+    private final Map<String, Consumer<Player>> actionMethods = new HashMap<>();
+
+    public record ConfigItem(String key, ItemStack item, String action, List<String> conditions) {}
 
     @ConfigValue(path = "title", colorize = true)
     protected String title = "Default Title";
@@ -25,7 +38,9 @@ public abstract class Gui implements InventoryHolder {
     protected List<String> layoutPattern = new ArrayList<>();
 
     @ConfigValue(path = "layout.items", optional = true)
-    protected Map<String, ItemStack> layoutItems = new HashMap<>();
+    protected Map<String, ConfigItem> layoutItems = new HashMap<>();
+
+    protected List<ConfigItem> mappedItems = new ArrayList<>();
 
     public Gui(Player player, String configName, String title) {
         this.player = player;
@@ -50,34 +65,62 @@ public abstract class Gui implements InventoryHolder {
             slots = 9;
         }
 
+        for (ConfigItem key : layoutItems.values()) {
+            if (key.item() == null) {
+                continue;
+            }
+
+            mappedItems.add(key);
+        }
+
         // Create inventory
         this.inventory = Bukkit.createInventory(player, slots, title);
     }
 
-//    /**
-//     * Applies the layout pattern to the inventory
-//     */
-//    protected void applyLayout() {
-//        if (layoutPattern.isEmpty() || layoutItems.isEmpty()) {
-//            return;
-//        }
-//
-//        int slot = 0;
-//        for (String row : layoutPattern) {
-//            for (char c : row.toCharArray()) {
-//                if (slot >= inventory.getSize()) {
-//                    break; // Prevent index out of bounds
-//                }
-//
-//                String key = String.valueOf(c);
-//                if (layoutItems.containsKey(key)) {
-//                    inventory.setItem(slot, layoutItems.get(key));
-//                }
-//
-//                slot++;
-//            }
-//        }
-//    }
+    public void handleClick(Player player, int slot) {
+        ConfigItem item = mappedItems.get(slot);
+
+        if (item == null) {
+            return;
+        }
+
+        if (item.action() != null) {
+            Consumer<Player> action = actionMethods.get(item.action());
+
+            if (action != null) {
+                action.accept(player);
+            } else {
+                logger.warn("Action '" + item.action() + "' not found in GUI '" + configName + "'");
+            }
+        }
+    }
+
+    @EventHandler
+    public void onInventoryClick(InventoryClickEvent event) {
+        if (event.getInventory() != this.inventory) {
+            return;
+        }
+
+        event.setCancelled(true);
+
+        if (event.getCurrentItem() == null) {
+            return;
+        }
+
+        if (!(event.getWhoClicked() instanceof Player player)) {
+            return;
+        }
+
+        if (event.getSlot() < 0 || event.getSlot() >= mappedItems.size()) {
+            return;
+        }
+
+        handleClick(player, event.getSlot());
+    }
+
+    public void register(CraftyPlugin plugin) {
+        Bukkit.getServer().getPluginManager().registerEvents(this, plugin);
+    }
 
     @Override
     public @NotNull Inventory getInventory() {

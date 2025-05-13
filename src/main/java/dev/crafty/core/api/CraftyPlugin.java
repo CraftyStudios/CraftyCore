@@ -5,6 +5,7 @@ import co.aikar.commands.PaperCommandManager;
 import com.vdurmont.semver4j.Semver;
 import dev.crafty.core.CraftyCore;
 import dev.crafty.core.config.ConfigHandler;
+import dev.crafty.core.gui.Gui;
 import dev.crafty.core.lang.Lang;
 import dev.crafty.core.log.Logger;
 import io.papermc.paper.plugin.configuration.PluginMeta;
@@ -36,6 +37,7 @@ public abstract class CraftyPlugin extends JavaPlugin {
     List<BaseCommand> getCommands() {return new ArrayList<>();}
     List<String> getRequiredPlugins() {return new ArrayList<>();}
     List<Listener> getListeners() {return new ArrayList<>();}
+    List<Gui> getGuis() { return new ArrayList<>();}
 
     @Override
     public void onEnable() {
@@ -89,6 +91,14 @@ public abstract class CraftyPlugin extends JavaPlugin {
         }
 
         logger.info("Successfully registered %s listeners!".formatted(getListeners().size()));
+
+        logger.info("Registering GUIs...");
+
+        for (Gui gui : getGuis()) {
+            gui.register(this);
+        }
+
+        logger.info("Successfully registered %s GUIs!".formatted(getGuis().size()));
     }
 
     @Override

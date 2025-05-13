@@ -7,6 +7,7 @@ import dev.crafty.core.async.ActionUtils;
 import dev.crafty.core.config.annotation.ConfigClassFile;
 import dev.crafty.core.config.annotation.ConfigValue;
 import dev.crafty.core.config.annotation.Validator;
+import dev.crafty.core.config.conditions.Condition;
 import dev.crafty.core.log.Logger;
 import dev.crafty.core.log.LoggingUtils;
 import me.clip.placeholderapi.PlaceholderAPI;
@@ -35,6 +36,7 @@ import java.util.stream.Collectors;
 public class ConfigHandler {
     private final List<ConfigSerializer<?>> serializers = new ArrayList<>();
     private final Map<Field, Supplier<OfflinePlayer>> playerSuppliers = new HashMap<>();
+    private final List<Condition<?>> conditions = new ArrayList<>();
 
     @Inject
     private Logger logger;
@@ -44,6 +46,10 @@ public class ConfigHandler {
 
     public void registerSerializer(ConfigSerializer<?> serializer) {
         serializers.add(serializer);
+    }
+
+    public void registerCondition(Condition<?> condition) {
+        conditions.add(condition);
     }
 
     @SuppressWarnings("unchecked")
