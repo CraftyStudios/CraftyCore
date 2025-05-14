@@ -5,6 +5,7 @@ import dev.crafty.core.config.annotation.ConfigValue;
 import dev.crafty.core.log.Logger;
 import jakarta.inject.Inject;
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -26,7 +27,7 @@ public abstract class Gui implements InventoryHolder, Listener {
 
     protected final Player player;
     private final String configName;
-    private Inventory inventory;
+    private final Inventory inventory;
     private final Map<String, Consumer<Player>> actionMethods = new HashMap<>();
 
     public record ConfigItem(String key, ItemStack item, String action, List<String> conditions) {}
@@ -67,7 +68,8 @@ public abstract class Gui implements InventoryHolder, Listener {
 
         for (ConfigItem key : layoutItems.values()) {
             if (key.item() == null) {
-                continue;
+                ConfigItem air = new ConfigItem(key.key(), new ItemStack(Material.AIR), null, key.conditions());
+                mappedItems.add(air);
             }
 
             mappedItems.add(key);
@@ -79,10 +81,6 @@ public abstract class Gui implements InventoryHolder, Listener {
 
     public void handleClick(Player player, int slot) {
         ConfigItem item = mappedItems.get(slot);
-
-        if (item == null) {
-            return;
-        }
 
         if (item.action() != null) {
             Consumer<Player> action = actionMethods.get(item.action());
